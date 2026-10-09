@@ -1,0 +1,291 @@
+你现在的机器可以按下面的拓扑部署：
+Prefill: 80.5.9.113
+容器: ycl-minimax-m3-p-20261009
+NPU: 16 × Ascend 910
+
+Decode: 80.5.9.127
+容器: ycl-minimax-m3-d-20261009
+NPU: 16 × Ascend 910
+PD 分离时，不能分别用两个普通的 vllm serve 直接对外提供服务，而是：
+Prefill vLLM 集群
+        ↓ Mooncake KV Cache
+Decode vLLM 集群
+        ↓
+Load Balance Proxy
+        ↓
+客户端访问 Proxy
+下面假设你的模型路径在两个容器中都存在：
+MODEL=/mnt/share/weight/Minimax-M3-W8V8-0626
+EAGLE=/mnt/share/weight/MiniMax-M3-EAGLE3-GQA
+注意：文档使用的是 W8A8，你提供的目录名是 W8V8，请确认目录实际对应的是 W8A8 权重。
+1. 先检查两个 Docker 容器
+在服务器上执行：
+docker inspect ycl-minimax-m3-p-20261009 \
+  --format 'Network={{.HostConfig.NetworkMode}} Shm={{.HostConfig.ShmSize}}'
+docker inspect ycl-minimax-m3-d-20261009 \
+  --format 'Network={{.HostConfig.NetworkMode}} Shm={{.HostConfig.ShmSize}}'
+PD 多机通信建议容器使用：
+Network=host
+分别进入容器：
+docker exec -it ycl-minimax-m3-p-20261009 bash
+docker exec -it ycl-minimax-m3-d-20261009 bash
+确认环境：
+npu-smi info
+pip show vllm-ascend
+ls -ld /mnt/share/weight/Minimax-M3-W8V8-0626
+ls -ld /mnt/share/weight/MiniMax-M3-EAGLE3-GQA
+检查网卡：
+ip -br addr
+假设两台机器用于 HCCL/Gloo 通信的网卡叫 eth0。如果实际是 bond0、enp... 等，后面的 NIC 必须替换。
+2. 检查两台机器网络
+在 Prefill 容器中：
+ping -c 3 80.5.9.127
+在 Decode 容器中：
+ping -c 3 80.5.9.113
+检查端口：
+nc -vz 80.5.9.113 6884
+nc -vz 80.5.9.127 5964
+如果 nc 不存在：
+timeout 3 bash -c '</dev/tcp/80.5.9.113/6884' && echo OK
+timeout 3 bash -c '</dev/tcp/80.5.9.127/5964' && echo OK
+还需要保证以下端口可互通：
+6884       Prefill DP RPC
+5964       Decode DP RPC
+31050-31051 Prefill API
+31060-31063 Decode API
+36000       Prefill Mooncake KV
+36100       Decode Mooncake KV
+8009        Proxy
+3. 准备启动脚本
+在两台容器中都执行：
+mkdir -p /workspace/minimax-pd
+cd /workspace/minimax-pd
+需要准备两个文件：
+launch_online_dp.py
+run_dp_template.sh
+launch_online_dp.py 使用文档 5.3 中的完整内容。它负责启动多个 DP rank。
+run_dp_template.sh 不能简单复制同一份到两台机器，因为 Prefill 和 Decode 的启动参数不同：
+- Prefill 使用 kv_role=kv_producer
+- Decode 使用 kv_role=kv_consumer
+同时需要保留：
+--data-parallel-size
+--data-parallel-rank
+--data-parallel-address
+--data-parallel-rpc-port
+--tensor-parallel-size
+--pipeline-parallel-size
+--kv-transfer-config
+如果容器中没有 Mooncake 相关库，先检查：
+find / -iname '*mooncake*' 2>/dev/null | head
+如果找不到，需要使用已经包含 Mooncake 的 vLLM-Ascend 镜像或安装对应依赖，否则 PD 服务无法建立 KV Cache 传输。
+4. 启动 Prefill
+进入 Prefill 容器：
+docker exec -it ycl-minimax-m3-p-20261009 bash
+执行：
+cd /workspace/minimax-pd
+
+export MODEL=/mnt/share/weight/Minimax-M3-W8V8-0626
+export EAGLE=/mnt/share/weight/MiniMax-M3-EAGLE3-GQA
+export P_IP=80.5.9.113
+export NIC=eth0
+
+unset http_proxy https_proxy ftp_proxy
+export VLLM_USE_V2_MODEL_RUNNER=1
+export HCCL_BUFFSIZE=1024
+export HCCL_IF_IP=$P_IP
+export HCCL_SOCKET_IFNAME=$NIC
+export GLOO_SOCKET_IFNAME=$NIC
+export PYTORCH_NPU_ALLOC_CONF=expandable_segments:True
+export VLLM_PP_LAYER_PARTITION=30,30
+
+python launch_online_dp.py \
+  --dp-size 2 \
+  --tp-size 4 \
+  --pp-size 2 \
+  --dp-size-local 2 \
+  --dp-rank-start 0 \
+  --dp-address $P_IP \
+  --dp-rpc-port 6884 \
+  --vllm-start-port 31050
+这个命令会启动两个 Prefill 服务：
+80.5.9.113:31050
+80.5.9.113:31051
+这里每个 Prefill DP rank 使用：
+TP=4 × PP=2 = 8 张 NPU
+两个 rank 合计 16 张 NPU。
+查看启动日志：
+ps -ef | grep vllm
+ss -lntp | grep -E '31050|31051|6884'
+必须等两个进程都出现：
+Application startup complete
+5. 启动 Decode
+进入 Decode 容器：
+docker exec -it ycl-minimax-m3-d-20261009 bash
+执行：
+cd /workspace/minimax-pd
+
+export MODEL=/mnt/share/weight/Minimax-M3-W8V8-0626
+export EAGLE=/mnt/share/weight/MiniMax-M3-EAGLE3-GQA
+export D_IP=80.5.9.127
+export NIC=eth0
+
+unset http_proxy https_proxy ftp_proxy
+export VLLM_USE_V2_MODEL_RUNNER=1
+export HCCL_BUFFSIZE=2048
+export HCCL_IF_IP=$D_IP
+export HCCL_SOCKET_IFNAME=$NIC
+export GLOO_SOCKET_IFNAME=$NIC
+export PYTORCH_NPU_ALLOC_CONF=expandable_segments:True
+
+python launch_online_dp.py \
+  --dp-size 4 \
+  --tp-size 4 \
+  --pp-size 1 \
+  --dp-size-local 4 \
+  --dp-rank-start 0 \
+  --dp-address $D_IP \
+  --dp-rpc-port 5964 \
+  --vllm-start-port 31060
+这个命令会启动四个 Decode 服务：
+80.5.9.127:31060
+80.5.9.127:31061
+80.5.9.127:31062
+80.5.9.127:31063
+每个 Decode rank 使用 4 张 NPU：
+TP=4 × PP=1 = 4 张 NPU
+四个 rank 合计 16 张 NPU。
+检查：
+ps -ef | grep vllm
+ss -lntp | grep -E '31060|31061|31062|31063|5964'
+同样需要等四个进程都出现：
+Application startup complete
+6. 确认 Mooncake 参数
+Prefill 的 run_dp_template.sh 中必须包含类似配置：
+{
+  "kv_connector": "MooncakeConnectorV1",
+  "kv_role": "kv_producer",
+  "kv_port": "36000",
+  "engine_id": "0",
+  "kv_connector_extra_config": {
+    "use_ascend_direct": true,
+    "prefill": {
+      "dp_size": 2,
+      "tp_size": 4,
+      "pp_size": 2,
+      "pp_layer_partition": "30,30"
+    },
+    "decode": {
+      "dp_size": 4,
+      "tp_size": 4,
+      "pp_size": 1
+    }
+  }
+}
+Decode 中必须改为：
+{
+  "kv_connector": "MooncakeConnectorV1",
+  "kv_role": "kv_consumer",
+  "kv_port": "36100",
+  "engine_id": "1",
+  "kv_connector_extra_config": {
+    "use_ascend_direct": true,
+    "prefill": {
+      "dp_size": 2,
+      "tp_size": 4,
+      "pp_size": 2,
+      "pp_layer_partition": "30,30"
+    },
+    "decode": {
+      "dp_size": 4,
+      "tp_size": 4,
+      "pp_size": 1
+    }
+  }
+}
+如果日志出现以下关键词，说明 KV 传输没有正常建立：
+Mooncake connection failed
+KV transfer timeout
+connection refused
+engine_id mismatch
+优先检查 HCCL_IF_IP、网卡名、端口、防火墙和容器网络模式。
+7. 启动 Proxy
+代理脚本需要在某个能同时访问两台机器的环境中运行。可以直接放在 Prefill 容器中：
+cd /workspace/minimax-pd
+python load_balance_proxy_server_example.py \
+  --port 8009 \
+  --host 80.5.9.113 \
+  --prefiller-hosts \
+    80.5.9.113 80.5.9.113 \
+  --prefiller-ports \
+    31050 31051 \
+  --decoder-hosts \
+    80.5.9.127 80.5.9.127 80.5.9.127 80.5.9.127 \
+  --decoder-ports \
+    31060 31061 31062 31063
+如果脚本不在容器内，需要从 vLLM-Ascend 仓库的 examples 目录获取：
+find / -name 'load_balance_proxy_server_example.py' 2>/dev/null
+最终客户端访问：
+http://80.5.9.113:8009
+检查模型接口：
+curl http://80.5.9.113:8009/v1/models
+发送测试请求：
+curl http://80.5.9.113:8009/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "minimax-m3",
+    "messages": [
+      {"role": "user", "content": "介绍一下你自己"}
+    ],
+    "max_tokens": 128,
+    "temperature": 0
+  }'
+8. 获取性能指标
+先使用短请求确认功能正常，再进行压测。不要直接压测单个 Prefill 或 Decode 端口，应当压测 Proxy：
+http://80.5.9.113:8009
+如果容器中支持 vllm bench serve：
+vllm bench serve \
+  --backend openai-chat \
+  --base-url http://80.5.9.113:8009 \
+  --endpoint /v1/chat/completions \
+  --model minimax-m3 \
+  --dataset-name random \
+  --num-prompts 100 \
+  --random-input-len 1024 \
+  --random-output-len 256 \
+  --request-rate inf \
+  --max-concurrency 16
+如果该版本参数不同，先查看：
+vllm bench serve --help
+至少记录这些指标：
+请求数
+成功率
+总吞吐量
+Input token throughput
+Output token throughput
+平均首 token 延迟 TTFT
+平均生成 token 延迟 TPOT
+端到端延迟
+P50 / P90 / P99 延迟
+同时在两台服务器分别监控：
+watch -n 1 npu-smi info
+CPU、内存和网络：
+top
+free -h
+sar -n DEV 1
+实时查看服务日志：
+ps -ef | grep vllm
+如果启动时没有重定向日志，可以重新启动时使用：
+python launch_online_dp.py ... 2>&1 | tee prefill.log
+压测报告建议至少记录以下组合：
+输入长度: 512 / 1024 / 4096
+输出长度: 128 / 256 / 512
+并发数: 1 / 4 / 8 / 16 / 32
+每组测试重复 2～3 次，舍弃第一次模型预热结果。最终你应当比较：
+Prefill 节点：TTFT 和输入吞吐
+Decode 节点：输出吞吐和 TPOT
+Proxy：端到端延迟、成功率和整体吞吐
+你当前最需要先确认的不是 vllm serve 命令，而是以下三项：
+docker inspect <容器> --format '{{.HostConfig.NetworkMode}}'
+ip -br addr
+find / -iname '*mooncake*' 2>/dev/null | head
+如果你把这三项输出，以及两个容器中 pip show vllm-ascend 的结果发出来，我可以继续把 run_dp_template.sh 和两个节点的启动命令改成与你当前镜像完全匹配的版本。
