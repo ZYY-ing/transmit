@@ -1,0 +1,88 @@
+NFO 10-09 14:35:35 [ascend_config.py:334] Dynamic EPLB is False
+INFO 10-09 14:35:35 [ascend_config.py:335] The number of redundant experts is 0
+INFO 10-09 14:35:35 [ascend_config.py:743] FlashComm1 is enabled.
+(EngineCore_DP1 pid=2327) ERROR 10-09 14:35:36 [core.py:1366] EngineCore failed to start.
+(EngineCore_DP1 pid=2327) ERROR 10-09 14:35:36 [core.py:1366] Traceback (most recent call last):
+(EngineCore_DP1 pid=2327) ERROR 10-09 14:35:36 [core.py:1366]   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm/v1/engine/core.py", line 1322, in run_engine_core
+(EngineCore_DP1 pid=2327) ERROR 10-09 14:35:36 [core.py:1366]     engine_core = DPEngineCoreProc(*args, **kwargs)
+(EngineCore_DP1 pid=2327) ERROR 10-09 14:35:36 [core.py:1366]                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore_DP1 pid=2327) ERROR 10-09 14:35:36 [core.py:1366]   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm/v1/engine/core.py", line 2037, in __init__
+(EngineCore_DP1 pid=2327) ERROR 10-09 14:35:36 [core.py:1366]     super().__init__(
+(EngineCore_DP1 pid=2327) ERROR 10-09 14:35:36 [core.py:1366]   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm/tracing/otel.py", line 178, in sync_wrapper
+(EngineCore_DP1 pid=2327) ERROR 10-09 14:35:36 [core.py:1366]     return func(*args, **kwargs)
+(EngineCore_DP1 pid=2327) ERROR 10-09 14:35:36 [core.py:1366]            ^^^^^^^^^^^^^^^^^^^^^
+(EngineCore_DP1 pid=2327) ERROR 10-09 14:35:36 [core.py:1366]   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm/v1/engine/core.py", line 1083, in __init__
+(EngineCore_DP1 pid=2327) ERROR 10-09 14:35:36 [core.py:1366]     self._init_data_parallel(vllm_config)
+(EngineCore_DP1 pid=2327) ERROR 10-09 14:35:36 [core.py:1366]   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm/v1/engine/core.py", line 2061, in _init_data_parallel
+(EngineCore_DP1 pid=2327) ERROR 10-09 14:35:36 [core.py:1366]     dp_group, dp_store = parallel_config.stateless_init_dp_group(return_store=True)
+(EngineCore_DP1 pid=2327) ERROR 10-09 14:35:36 [core.py:1366]                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore_DP1 pid=2327) ERROR 10-09 14:35:36 [core.py:1366]   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm/config/parallel.py", line 685, in stateless_init_dp_group
+(EngineCore_DP1 pid=2327) ERROR 10-09 14:35:36 [core.py:1366]     return stateless_init_torch_distributed_process_group(
+(EngineCore_DP1 pid=2327) ERROR 10-09 14:35:36 [core.py:1366]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore_DP1 pid=2327) ERROR 10-09 14:35:36 [core.py:1366]   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm/distributed/utils.py", line 658, in stateless_init_torch_distributed_process_group
+(EngineCore_DP1 pid=2327) ERROR 10-09 14:35:36 [core.py:1366]     pg = init_gloo_process_group(
+(EngineCore_DP1 pid=2327) ERROR 10-09 14:35:36 [core.py:1366]          ^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore_DP1 pid=2327) ERROR 10-09 14:35:36 [core.py:1366]   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm/distributed/utils.py", line 564, in init_gloo_process_group
+(EngineCore_DP1 pid=2327) ERROR 10-09 14:35:36 [core.py:1366]     backend_class = ProcessGroupGloo(
+(EngineCore_DP1 pid=2327) ERROR 10-09 14:35:36 [core.py:1366]                     ^^^^^^^^^^^^^^^^^
+(EngineCore_DP1 pid=2327) ERROR 10-09 14:35:36 [core.py:1366] RuntimeError: [enforce fail at /pytorch/third_party/gloo/gloo/transport/tcp/device.cc:84] ifa != nullptr. Unable to find address for: xxxx
+(EngineCore_DP1 pid=2327) Process EngineCore_DP1:
+(EngineCore_DP1 pid=2327) Traceback (most recent call last):
+(EngineCore_DP1 pid=2327)   File "/usr/local/python3.11.10/lib/python3.11/multiprocessing/process.py", line 314, in _bootstrap
+(EngineCore_DP1 pid=2327)     self.run()
+(EngineCore_DP1 pid=2327)   File "/usr/local/python3.11.10/lib/python3.11/multiprocessing/process.py", line 108, in run
+(EngineCore_DP1 pid=2327)     self._target(*self._args, **self._kwargs)
+(EngineCore_DP1 pid=2327)   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm_ascend/patch/platform/patch_engine_core.py", line 56, in _run_engine_core_patch_func
+(EngineCore_DP1 pid=2327)     return _OriginalRunEngineCore(*args, dp_rank=dp_rank, local_dp_rank=local_dp_rank, **kwargs)
+(EngineCore_DP1 pid=2327)            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore_DP1 pid=2327)   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm/v1/engine/core.py", line 1370, in run_engine_core
+(EngineCore_DP1 pid=2327)     raise e
+(EngineCore_DP1 pid=2327)   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm/v1/engine/core.py", line 1322, in run_engine_core
+(EngineCore_DP1 pid=2327)     engine_core = DPEngineCoreProc(*args, **kwargs)
+(EngineCore_DP1 pid=2327)                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore_DP1 pid=2327)   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm/v1/engine/core.py", line 2037, in __init__
+(EngineCore_DP1 pid=2327)     super().__init__(
+(EngineCore_DP1 pid=2327)   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm/tracing/otel.py", line 178, in sync_wrapper
+(EngineCore_DP1 pid=2327)     return func(*args, **kwargs)
+(EngineCore_DP1 pid=2327)            ^^^^^^^^^^^^^^^^^^^^^
+(EngineCore_DP1 pid=2327)   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm/v1/engine/core.py", line 1083, in __init__
+(EngineCore_DP1 pid=2327)     self._init_data_parallel(vllm_config)
+(EngineCore_DP1 pid=2327)   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm/v1/engine/core.py", line 2061, in _init_data_parallel
+(EngineCore_DP1 pid=2327)     dp_group, dp_store = parallel_config.stateless_init_dp_group(return_store=True)
+(EngineCore_DP1 pid=2327)                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore_DP1 pid=2327)   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm/config/parallel.py", line 685, in stateless_init_dp_group
+(EngineCore_DP1 pid=2327)     return stateless_init_torch_distributed_process_group(
+(EngineCore_DP1 pid=2327)            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore_DP1 pid=2327)   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm/distributed/utils.py", line 658, in stateless_init_torch_distributed_process_group
+(EngineCore_DP1 pid=2327)     pg = init_gloo_process_group(
+(EngineCore_DP1 pid=2327)          ^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore_DP1 pid=2327)   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm/distributed/utils.py", line 564, in init_gloo_process_group
+(EngineCore_DP1 pid=2327)     backend_class = ProcessGroupGloo(
+(EngineCore_DP1 pid=2327)                     ^^^^^^^^^^^^^^^^^
+(EngineCore_DP1 pid=2327) RuntimeError: [enforce fail at /pytorch/third_party/gloo/gloo/transport/tcp/device.cc:84] ifa != nullptr. Unable to find address for: xxxx
+(EngineCore_DP0 pid=2877) ERROR 10-09 14:35:36 [core.py:1366] EngineCore failed to start.
+(EngineCore_DP0 pid=2877) ERROR 10-09 14:35:36 [core.py:1366] Traceback (most recent call last):
+(EngineCore_DP0 pid=2877) ERROR 10-09 14:35:36 [core.py:1366]   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm/v1/engine/core.py", line 1322, in run_engine_core
+(EngineCore_DP0 pid=2877) ERROR 10-09 14:35:36 [core.py:1366]     engine_core = DPEngineCoreProc(*args, **kwargs)
+(EngineCore_DP0 pid=2877) ERROR 10-09 14:35:36 [core.py:1366]                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore_DP0 pid=2877) ERROR 10-09 14:35:36 [core.py:1366]   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm/v1/engine/core.py", line 2037, in __init__
+(EngineCore_DP0 pid=2877) ERROR 10-09 14:35:36 [core.py:1366]     super().__init__(
+(EngineCore_DP0 pid=2877) ERROR 10-09 14:35:36 [core.py:1366]   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm/tracing/otel.py", line 178, in sync_wrapper
+(EngineCore_DP0 pid=2877) ERROR 10-09 14:35:36 [core.py:1366]     return func(*args, **kwargs)
+(EngineCore_DP0 pid=2877) ERROR 10-09 14:35:36 [core.py:1366]            ^^^^^^^^^^^^^^^^^^^^^
+(EngineCore_DP0 pid=2877) ERROR 10-09 14:35:36 [core.py:1366]   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm/v1/engine/core.py", line 1083, in __init__
+(EngineCore_DP0 pid=2877) ERROR 10-09 14:35:36 [core.py:1366]     self._init_data_parallel(vllm_config)
+(EngineCore_DP0 pid=2877) ERROR 10-09 14:35:36 [core.py:1366]   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm/v1/engine/core.py", line 2061, in _init_data_parallel
+(EngineCore_DP0 pid=2877) ERROR 10-09 14:35:36 [core.py:1366]     dp_group, dp_store = parallel_config.stateless_init_dp_group(return_store=True)
+(EngineCore_DP0 pid=2877) ERROR 10-09 14:35:36 [core.py:1366]                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore_DP0 pid=2877) ERROR 10-09 14:35:36 [core.py:1366]   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm/config/parallel.py", line 685, in stateless_init_dp_group
+(EngineCore_DP0 pid=2877) ERROR 10-09 14:35:36 [core.py:1366]     return stateless_init_torch_distributed_process_group(
+(EngineCore_DP0 pid=2877) ERROR 10-09 14:35:36 [core.py:1366]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore_DP0 pid=2877) ERROR 10-09 14:35:36 [core.py:1366]   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm/distributed/utils.py", line 658, in stateless_init_torch_distributed_process_group
+(EngineCore_DP0 pid=2877) ERROR 10-09 14:35:36 [core.py:1366]     pg = init_gloo_process_group(
+(EngineCore_DP0 pid=2877) ERROR 10-09 14:35:36 [core.py:1366]          ^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore_DP0 pid=2877) ERROR 10-09 14:35:36 [core.py:1366]   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm/distributed/utils.py", line 564, in init_gloo_process_group
+(EngineCore_DP0 pid=2877) ERROR 10-09 14:35:36 [core.py:1366]     backend_class = ProcessGroupGloo(
+(EngineCore_DP0 pid=2877) ERROR 10-09 14:35:36 [core.py:1366]                     ^^^^^^^^^^^^^^^^^
+(EngineCore_DP0 pid=2877) ERROR 10-09 14:35:36 [core.py:1366] RuntimeError: [enforce fail at /pytorch/third_party/gloo/gloo/transport/tcp/device.cc:84] ifa != nullptr. Unable to find address for: xxxx
+(EngineCore_DP0 pid=2877) Process EngineCore_DP0:
