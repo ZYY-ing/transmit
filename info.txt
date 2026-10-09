@@ -87,7 +87,7 @@ cd /workspace/minimax-pd
 export MODEL=/mnt/share/weight/Minimax-M3-W8V8-0626
 export EAGLE=/mnt/share/weight/MiniMax-M3-EAGLE3-GQA
 export P_IP=80.5.9.113
-export NIC=eth0
+export NIC=enp194s0f0
 
 unset http_proxy https_proxy ftp_proxy
 export VLLM_USE_V2_MODEL_RUNNER=1
@@ -127,7 +127,7 @@ cd /workspace/minimax-pd
 export MODEL=/mnt/share/weight/Minimax-M3-W8V8-0626
 export EAGLE=/mnt/share/weight/MiniMax-M3-EAGLE3-GQA
 export D_IP=80.5.9.127
-export NIC=eth0
+export NIC=enp194s0f0
 
 unset http_proxy https_proxy ftp_proxy
 export VLLM_USE_V2_MODEL_RUNNER=1
