@@ -74,3 +74,82 @@ df043b4c087d   vllm-ascend:dev-26.2.0.day20261009-800I-A3-py311-openEuler24.03-l
 [root@node-97-46 z00949185]# docker logs --tail 200 ycl-minimax-m3-d-20261009
 /bin/bash: /lib64/lib
 
+
+(Worker_DP0_TP1_EP1 pid=8753) ERROR 10-09 21:43:32 [mooncake_connector.py:1044] Mooncake transfer failed for request. remote_request_id=chatcmpl-244af072-b6e3-498d-bf40-2592bc9a34aa-bd3911b5, ret=-1. 
+I1009 21:43:32.370802 740221 transfer_engine_py.cpp:550] Sync batch data transfer timeout after 30005701654ns
+(Worker_DP0_TP3_EP3 pid=10768) ERROR 10-09 21:43:32 [mooncake_connector.py:1044] Mooncake transfer failed for request. remote_request_id=chatcmpl-244af072-b6e3-498d-bf40-2592bc9a34aa-bd3911b5, ret=-1. 
+I1009 21:43:32.372290 740222 transfer_engine_py.cpp:550] Sync batch data transfer timeout after 30005701824ns
+I1009 21:43:32.372532 740223 transfer_engine_py.cpp:550] Sync batch data transfer timeout after 30005702784ns
+(Worker_DP0_TP0_EP0 pid=7725) ERROR 10-09 21:43:32 [mooncake_connector.py:1044] Mooncake transfer failed for request. remote_request_id=chatcmpl-244af072-b6e3-498d-bf40-2592bc9a34aa-bd3911b5, ret=-1. 
+(Worker_DP0_TP2_EP2 pid=9756) ERROR 10-09 21:43:32 [mooncake_connector.py:1044] Mooncake transfer failed for request. remote_request_id=chatcmpl-244af072-b6e3-498d-bf40-2592bc9a34aa-bd3911b5, ret=-1. 
+(Worker_DP0_TP1_EP1 pid=8753) ERROR 10-09 21:43:32 [mooncake_connector.py:741] Failed to transfer KV cache for request chatcmpl-244af072-b6e3-498d-bf40-2592bc9a34aa-bd3911b5: Mooncake transfer failed, ret: -1
+(Worker_DP0_TP1_EP1 pid=8753) ERROR 10-09 21:43:32 [mooncake_connector.py:741] Traceback (most recent call last):
+(Worker_DP0_TP1_EP1 pid=8753) ERROR 10-09 21:43:32 [mooncake_connector.py:741]   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py", line 736, in _handle_request
+(Worker_DP0_TP1_EP1 pid=8753) ERROR 10-09 21:43:32 [mooncake_connector.py:741]     self._transfer_kv_cache_all_groups(req_meta)
+(Worker_DP0_TP1_EP1 pid=8753) ERROR 10-09 21:43:32 [mooncake_connector.py:741]   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py", line 1049, in _transfer_kv_cache_all_groups
+(Worker_DP0_TP1_EP1 pid=8753) ERROR 10-09 21:43:32 [mooncake_connector.py:741]     raise RuntimeError(f"Mooncake transfer failed, ret: {ret}")
+(Worker_DP0_TP1_EP1 pid=8753) ERROR 10-09 21:43:32 [mooncake_connector.py:741] RuntimeError: Mooncake transfer failed, ret: -1
+(Worker_DP0_TP3_EP3 pid=10768) ERROR 10-09 21:43:32 [mooncake_connector.py:741] Failed to transfer KV cache for request chatcmpl-244af072-b6e3-498d-bf40-2592bc9a34aa-bd3911b5: Mooncake transfer failed, ret: -1
+(Worker_DP0_TP3_EP3 pid=10768) ERROR 10-09 21:43:32 [mooncake_connector.py:741] Traceback (most recent call last):
+(Worker_DP0_TP3_EP3 pid=10768) ERROR 10-09 21:43:32 [mooncake_connector.py:741]   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py", line 736, in _handle_request
+(Worker_DP0_TP3_EP3 pid=10768) ERROR 10-09 21:43:32 [mooncake_connector.py:741]     self._transfer_kv_cache_all_groups(req_meta)
+(Worker_DP0_TP3_EP3 pid=10768) ERROR 10-09 21:43:32 [mooncake_connector.py:741]   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py", line 1049, in _transfer_kv_cache_all_groups
+(Worker_DP0_TP3_EP3 pid=10768) ERROR 10-09 21:43:32 [mooncake_connector.py:741]     raise RuntimeError(f"Mooncake transfer failed, ret: {ret}")
+(Worker_DP0_TP3_EP3 pid=10768) ERROR 10-09 21:43:32 [mooncake_connector.py:741] RuntimeError: Mooncake transfer failed, ret: -1
+I1009 21:43:32.375737 740224 transfer_engine_py.cpp:550] Sync batch data transfer timeout after 30006029666ns
+(Worker_DP0_TP1_EP1 pid=8753) ERROR 10-09 21:43:32 [mooncake_connector.py:1044] Mooncake transfer failed for request. remote_request_id=chatcmpl-244af072-b6e3-498d-bf40-2592bc9a34aa-bd3911b5, ret=-1. 
+(Worker_DP0_TP0_EP0 pid=7725) ERROR 10-09 21:43:32 [mooncake_connector.py:741] Failed to transfer KV cache for request chatcmpl-244af072-b6e3-498d-bf40-2592bc9a34aa-bd3911b5: Mooncake transfer failed, ret: -1
+(Worker_DP0_TP0_EP0 pid=7725) ERROR 10-09 21:43:32 [mooncake_connector.py:741] Traceback (most recent call last):
+(Worker_DP0_TP0_EP0 pid=7725) ERROR 10-09 21:43:32 [mooncake_connector.py:741]   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py", line 736, in _handle_request
+(Worker_DP0_TP2_EP2 pid=9756) ERROR 10-09 21:43:32 [mooncake_connector.py:741] Failed to transfer KV cache for request chatcmpl-244af072-b6e3-498d-bf40-2592bc9a34aa-bd3911b5: Mooncake transfer failed, ret: -1
+I1009 21:43:32.376706 740225 transfer_engine_py.cpp:550] Sync batch data transfer timeout after 30006029356ns
+(Worker_DP0_TP0_EP0 pid=7725) ERROR 10-09 21:43:32 [mooncake_connector.py:741]     self._transfer_kv_cache_all_groups(req_meta)
+(Worker_DP0_TP0_EP0 pid=7725) ERROR 10-09 21:43:32 [mooncake_connector.py:741]   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py", line 1049, in _transfer_kv_cache_all_groups
+(Worker_DP0_TP2_EP2 pid=9756) ERROR 10-09 21:43:32 [mooncake_connector.py:741] Traceback (most recent call last):
+(Worker_DP0_TP0_EP0 pid=7725) ERROR 10-09 21:43:32 [mooncake_connector.py:741]     raise RuntimeError(f"Mooncake transfer failed, ret: {ret}")
+(Worker_DP0_TP2_EP2 pid=9756) ERROR 10-09 21:43:32 [mooncake_connector.py:741]   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py", line 736, in _handle_request
+(Worker_DP0_TP0_EP0 pid=7725) ERROR 10-09 21:43:32 [mooncake_connector.py:741] RuntimeError: Mooncake transfer failed, ret: -1
+(Worker_DP0_TP2_EP2 pid=9756) ERROR 10-09 21:43:32 [mooncake_connector.py:741]     self._transfer_kv_cache_all_groups(req_meta)
+(Worker_DP0_TP3_EP3 pid=10768) ERROR 10-09 21:43:32 [mooncake_connector.py:1044] Mooncake transfer failed for request. remote_request_id=chatcmpl-244af072-b6e3-498d-bf40-2592bc9a34aa-bd3911b5, ret=-1. 
+(Worker_DP0_TP2_EP2 pid=9756) ERROR 10-09 21:43:32 [mooncake_connector.py:741]   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py", line 1049, in _transfer_kv_cache_all_groups
+(Worker_DP0_TP1_EP1 pid=8753) ERROR 10-09 21:43:32 [mooncake_connector.py:741] Failed to transfer KV cache for request chatcmpl-244af072-b6e3-498d-bf40-2592bc9a34aa-bd3911b5: Mooncake transfer failed, ret: -1
+(Worker_DP0_TP2_EP2 pid=9756) ERROR 10-09 21:43:32 [mooncake_connector.py:741]     raise RuntimeError(f"Mooncake transfer failed, ret: {ret}")
+(Worker_DP0_TP2_EP2 pid=9756) ERROR 10-09 21:43:32 [mooncake_connector.py:741] RuntimeError: Mooncake transfer failed, ret: -1
+(Worker_DP0_TP1_EP1 pid=8753) ERROR 10-09 21:43:32 [mooncake_connector.py:741] Traceback (most recent call last):
+(Worker_DP0_TP1_EP1 pid=8753) ERROR 10-09 21:43:32 [mooncake_connector.py:741]   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py", line 736, in _handle_request
+(Worker_DP0_TP1_EP1 pid=8753) ERROR 10-09 21:43:32 [mooncake_connector.py:741]     self._transfer_kv_cache_all_groups(req_meta)
+(Worker_DP0_TP1_EP1 pid=8753) ERROR 10-09 21:43:32 [mooncake_connector.py:741]   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py", line 1049, in _transfer_kv_cache_all_groups
+I1009 21:43:32.377418 740226 transfer_engine_py.cpp:550] Sync batch data transfer timeout after 30006029706ns
+(Worker_DP0_TP1_EP1 pid=8753) ERROR 10-09 21:43:32 [mooncake_connector.py:741]     raise RuntimeError(f"Mooncake transfer failed, ret: {ret}")
+(Worker_DP0_TP1_EP1 pid=8753) ERROR 10-09 21:43:32 [mooncake_connector.py:741] RuntimeError: Mooncake transfer failed, ret: -1
+(Worker_DP0_TP3_EP3 pid=10768) ERROR 10-09 21:43:32 [mooncake_connector.py:741] Failed to transfer KV cache for request chatcmpl-244af072-b6e3-498d-bf40-2592bc9a34aa-bd3911b5: Mooncake transfer failed, ret: -1
+(Worker_DP0_TP3_EP3 pid=10768) ERROR 10-09 21:43:32 [mooncake_connector.py:741] Traceback (most recent call last):
+(Worker_DP0_TP3_EP3 pid=10768) ERROR 10-09 21:43:32 [mooncake_connector.py:741]   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py", line 736, in _handle_request
+(Worker_DP0_TP3_EP3 pid=10768) ERROR 10-09 21:43:32 [mooncake_connector.py:741]     self._transfer_kv_cache_all_groups(req_meta)
+(Worker_DP0_TP0_EP0 pid=7725) ERROR 10-09 21:43:32 [mooncake_connector.py:1044] Mooncake transfer failed for request. remote_request_id=chatcmpl-244af072-b6e3-498d-bf40-2592bc9a34aa-bd3911b5, ret=-1. 
+(Worker_DP0_TP3_EP3 pid=10768) ERROR 10-09 21:43:32 [mooncake_connector.py:741]   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py", line 1049, in _transfer_kv_cache_all_groups
+(Worker_DP0_TP3_EP3 pid=10768) ERROR 10-09 21:43:32 [mooncake_connector.py:741]     raise RuntimeError(f"Mooncake transfer failed, ret: {ret}")
+(Worker_DP0_TP3_EP3 pid=10768) ERROR 10-09 21:43:32 [mooncake_connector.py:741] RuntimeError: Mooncake transfer failed, ret: -1
+I1009 21:43:32.378719 740227 transfer_engine_py.cpp:550] Sync batch data transfer timeout after 30006030076ns
+(Worker_DP0_TP0_EP0 pid=7725) ERROR 10-09 21:43:32 [mooncake_connector.py:741] Failed to transfer KV cache for request chatcmpl-244af072-b6e3-498d-bf40-2592bc9a34aa-bd3911b5: Mooncake transfer failed, ret: -1
+(Worker_DP0_TP0_EP0 pid=7725) ERROR 10-09 21:43:32 [mooncake_connector.py:741] Traceback (most recent call last):
+(Worker_DP0_TP0_EP0 pid=7725) ERROR 10-09 21:43:32 [mooncake_connector.py:741]   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py", line 736, in _handle_request
+(Worker_DP0_TP0_EP0 pid=7725) ERROR 10-09 21:43:32 [mooncake_connector.py:741]     self._transfer_kv_cache_all_groups(req_meta)
+(Worker_DP0_TP2_EP2 pid=9756) ERROR 10-09 21:43:32 [mooncake_connector.py:1044] Mooncake transfer failed for request. remote_request_id=chatcmpl-244af072-b6e3-498d-bf40-2592bc9a34aa-bd3911b5, ret=-1. 
+(Worker_DP0_TP0_EP0 pid=7725) ERROR 10-09 21:43:32 [mooncake_connector.py:741]   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py", line 1049, in _transfer_kv_cache_all_groups
+(Worker_DP0_TP0_EP0 pid=7725) ERROR 10-09 21:43:32 [mooncake_connector.py:741]     raise RuntimeError(f"Mooncake transfer failed, ret: {ret}")
+(Worker_DP0_TP0_EP0 pid=7725) ERROR 10-09 21:43:32 [mooncake_connector.py:741] RuntimeError: Mooncake transfer failed, ret: -1
+(Worker_DP0_TP2_EP2 pid=9756) ERROR 10-09 21:43:32 [mooncake_connector.py:741] Failed to transfer KV cache for request chatcmpl-244af072-b6e3-498d-bf40-2592bc9a34aa-bd3911b5: Mooncake transfer failed, ret: -1
+(Worker_DP0_TP2_EP2 pid=9756) ERROR 10-09 21:43:32 [mooncake_connector.py:741] Traceback (most recent call last):
+(Worker_DP0_TP2_EP2 pid=9756) ERROR 10-09 21:43:32 [mooncake_connector.py:741]   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py", line 736, in _handle_request
+(Worker_DP0_TP2_EP2 pid=9756) ERROR 10-09 21:43:32 [mooncake_connector.py:741]     self._transfer_kv_cache_all_groups(req_meta)
+(Worker_DP0_TP2_EP2 pid=9756) ERROR 10-09 21:43:32 [mooncake_connector.py:741]   File "/usr/local/python3.11.10/lib/python3.11/site-packages/vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py", line 1049, in _transfer_kv_cache_all_groups
+(Worker_DP0_TP2_EP2 pid=9756) ERROR 10-09 21:43:32 [mooncake_connector.py:741]     raise RuntimeError(f"Mooncake transfer failed, ret: {ret}")
+(Worker_DP0_TP2_EP2 pid=9756) ERROR 10-09 21:43:32 [mooncake_connector.py:741] RuntimeError: Mooncake transfer failed, ret: -1
+(EngineCore_DP0 pid=7019) ERROR 10-09 21:43:32 [scheduler.py:3231] Failing 1 request(s) due to KV load failure (failure_policy=fail, 178 tokens affected). Request IDs: {'chatcmpl-244af072-b6e3-498d-bf40-2592bc9a34aa-b4402bd4'}
+(APIServer pid=998) ERROR 10-09 21:43:32 [serving.py:207] Request chatcmpl-244af072-b6e3-498d-bf40-2592bc9a34aa failed with an internal error during generation
+(APIServer pid=998) INFO:     80.5.9.137:58500 - "POST /v1/chat/completions HTTP/1.1" 500 Internal Server Error
+(Worker_DP0_TP0_EP0 pid=7725) WARNING 10-09 21:43:32 [mooncake_connector.py:205] MooncakeConnector finish req not in reqs to process. request_id=9ce0c070c8b8e18a. Possible cause: Request was already completed or not properly tracked. Check: Verify request lifecycle and tracking logic.
+(Worker_DP0_TP2_EP2 pid=9756) WARNING 10-09 21:43:32 [mooncake_connector.py:205] MooncakeConnector finish req not in reqs to process. request_id=9ce0c070c8b8e18a. Possible cause: Request was already completed or not properly tracked. Check: Verify request lifecycle and tracking logic.
+
+
