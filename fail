@@ -1,58 +1,23 @@
-
-[root@worker-112 /]# ls /usr/local/python3.11.10/lib/python3.11/site-packages/ais_bench/datasets/gsm8k
-gsm8k-lite.jsonl  test.jsonl  train.jsonl
-[root@worker-112 /]# ais_bench --models vllm_api_stream_chat --datasets gsm8k_gen_0_shot_cot_str_perf --mode perf --debug
-[2026-10-09 20:10:42,538] [ais_bench] [INFO] Loading vllm_api_stream_chat: /usr/local/python3.11.10/lib/python3.11/site-packages/ais_bench/benchmark/configs/./models/vllm_api/vllm_api_stream_chat.py
-[2026-10-09 20:10:42,545] [ais_bench] [INFO] Loading gsm8k_gen_0_shot_cot_str_perf: /usr/local/python3.11.10/lib/python3.11/site-packages/ais_bench/benchmark/configs/./datasets/gsm8k/gsm8k_gen_0_shot_cot_str_perf.py
-[2026-10-09 20:10:42,547] [ais_bench] [INFO] Loading example: /usr/local/python3.11.10/lib/python3.11/site-packages/ais_bench/benchmark/configs/./summarizers/example.py
-[2026-10-09 20:10:42,572] [ais_bench] [INFO] Current exp folder: outputs/default/20261009_201034
-[2026-10-09 20:10:42,579] [ais_bench] [INFO] Starting inference tasks...
-[2026-10-09 20:10:42,580] [ais_bench] [INFO] Partitioned into 1 tasks.
-[2026-10-09 20:10:42,580] [ais_bench] [INFO] Merging datasets with the same model and inferencer...
-[2026-10-09 20:10:42,604] [ais_bench] [INFO] Launch TasksMonitor, PID: 51512, Refresh interval: 0.5, Run in background: True
-[2026-10-09 20:10:51,773] [ais_bench] [INFO] Debug mode, print progress directly
-[2026-10-09 20:10:51,774] [ais_bench] [INFO] Task [vllm-api-stream-chat/gsm8k]
-Traceback (most recent call last):
-  File "/usr/local/python3.11.10/lib/python3.11/site-packages/ais_bench/benchmark/tasks/openicl_api_infer.py", line 704, in <module>
-    raise e
-  File "/usr/local/python3.11.10/lib/python3.11/site-packages/ais_bench/benchmark/tasks/openicl_api_infer.py", line 701, in <module>
-    inferencer.run(task_state_manager)
-  File "/usr/local/python3.11.10/lib/python3.11/site-packages/ais_bench/benchmark/tasks/openicl_api_infer.py", line 480, in run
-    data_list, finish_data_count, global_indexes = self._get_data_list()
-                                                   ^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/python3.11.10/lib/python3.11/site-packages/ais_bench/benchmark/tasks/openicl_api_infer.py", line 167, in _get_data_list
-    dataset = build_dataset_from_cfg(dataset_cfg, task_state_manager=self.task_state_manager)
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/python3.11.10/lib/python3.11/site-packages/ais_bench/benchmark/utils/config/build.py", line 124, in build_dataset_from_cfg
-    return LOAD_DATASET.build(dataset_cfg)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/python3.11.10/lib/python3.11/site-packages/mmengine/registry/registry.py", line 570, in build
-    return self.build_func(cfg, *args, **kwargs, registry=self)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/python3.11.10/lib/python3.11/site-packages/mmengine/registry/build_functions.py", line 121, in build_from_cfg
-    obj = obj_cls(**args)  # type: ignore
-          ^^^^^^^^^^^^^^^
-  File "/usr/local/python3.11.10/lib/python3.11/site-packages/ais_bench/benchmark/datasets/base.py", line 43, in __init__
-    self.dataset = self.load(**kwargs)
-                   ^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/python3.11.10/lib/python3.11/site-packages/ais_bench/benchmark/datasets/gsm8k.py", line 32, in load
-    with open(split_path, 'r', encoding='utf-8') as f:
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-FileNotFoundError: [Errno 2] No such file or directory: '/usr/local/python3.11.10/lib/python3.11/site-packages/ais_bench/benchmark/datasets/utils/../../../../ais_bench/datasets/gsm8k/test.jsonl'
-[ERROR] 2026-10-09-20:10:51 (PID:51514, Device:-1, RankID:-1) ERR99999 UNKNOWN applicaiton exception
-[2026-10-09 20:10:53,141] [ais_bench] [INFO] Inference tasks completed.
-[2026-10-09 20:10:53,142] [ais_bench] [INFO] Summarizing performance results...
-[2026-10-09 20:10:53,142] [ais_bench] [WARNING] Can't find details perf data of [vllm-api-stream-chat/gsm8k] in outputs/default/20261009_201034, use tmp cache data.
-Traceback (most recent call last):
-  File "/usr/local/python3.11.10/bin/ais_bench", line 8, in <module>
-    sys.exit(main())
-             ^^^^^^
-  File "/usr/local/python3.11.10/lib/python3.11/site-packages/ais_bench/benchmark/cli/main.py", line 6, in main
-    task_manager.run()
-  File "/usr/local/python3.11.10/lib/python3.11/site-packages/ais_bench/benchmark/cli/task_manager.py", line 39, in run
-    workflow_executor.execute()
-  File "/usr/local/python3.11.10/lib/python3.11/site-packages/ais_bench/benchmark/cli/workers.py", line 492, in execute
-    worker.do_work(cfg)
-  File "/usr/local/python3.11.10/lib/python3.11/site-packages/ais_bench/benchmark/cli/workers.py", line 469, in do_work
-    summarizer.summarize()
-  File "/usr/local/python3.11.10/lib/python3.11/site-packages/ais_bench/benchmark
+[root@node-97-46 z00949185]# docker load -i vllm-ascend_dev-26.2.0.day20261009-800I-A3-py311-openEuler24.03-lts-aarch64.tar.gz
+6786988e2235: Loading layer [==================================================>]  1.126GB/1.126GB
+e58e5467d126: Loading layer [==================================================>]    309MB/309MB
+2689db1cd3a0: Loading layer [==================================================>]  649.2kB/649.2kB
+e460e7daf407: Loading layer [==================================================>]  309.6MB/309.6MB
+9469a7cc7e78: Loading layer [==================================================>]  11.08GB/11.08GB
+9b9cf100e9b2: Loading layer [==================================================>]  3.072kB/3.072kB
+655cf6243539: Loading layer [==================================================>]  1.536kB/1.536kB
+330e3dd2c853: Loading layer [==================================================>]  6.701GB/6.701GB
+0ef1846771e7: Loading layer [==================================================>]    465MB/465MB
+a007122f352b: Loading layer [==================================================>]  3.101GB/3.101GB
+c3494b72b457: Loading layer [==================================================>]  164.8MB/164.8MB
+01e61f508120: Loading layer [==================================================>]  770.9MB/770.9MB
+5220ca2d3d1e: Loading layer [==================================================>]  612.1MB/612.1MB
+766e361ca780: Loading layer [==================================================>]  7.168kB/7.168kB
+Loaded image: vllm-ascend:dev-26.2.0.day20261009-800I-A3-py311-openEuler24.03-lts-aarch64
+[root@node-97-46 z00949185]# bash my_start_docker.sh vllm-ascend:dev-26.2.0.day20261009-800I-A3-py311-openEuler24.03-lts-aarch64
+error: need one argument describing your container name.
+[root@node-97-46 z00949185]# bash my_start_docker.sh vllm-ascend:dev-26.2.0.day20261009-800I-A3-py311-openEuler24.03-lts-aarch64 ycl-minimax-m3-d-20261009
+df043b4c087d3158ba5934bae45f1075b105a5d00f2549ee5039bbc2464374cb
+[root@node-97-46 z00949185]# docker exec -it ycl-minimax-m3-d-20261009 bash
+Error response from daemon: Container df043b4c087d3158ba5934bae45f1075b105a5d00f2549ee5039bbc2464374cb is not running
+[root@node-97-46 z00949185]# 
