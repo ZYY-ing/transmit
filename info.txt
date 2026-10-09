@@ -240,6 +240,56 @@ curl http://80.5.9.113:8009/v1/chat/completions \
     "temperature": 0
   }'
 8. 获取性能指标
+先修改 config.py
+进入仓库目录：
+cd /path/to/aisbench_auto_tools_prefix
+vim config.py
+确认配置类似：
+DATASET_PATH = "/path/to/aisbench_dataset"
+
+WORK_PATH = "/usr/local/python3.11.10/lib/python3.11/site-packages"
+
+MODEL_NAME = "minimax-m3"
+
+MODEL_PATH = "/mnt/share/weight/Minimax-M3-W8V8-0626"
+
+HOST_IP = "80.5.9.113"
+
+HOST_PORT = "8009"
+
+API_KEY = ""
+URL = ""
+DEFAULT_PERFORMANCE_TEST = "default_perf"
+其中：
+HOST_IP/HOST_PORT = PD Proxy 地址
+MODEL_NAME         = vLLM 的 served-model-name
+MODEL_PATH         = 模型路径，用于 tokenizer
+先测试 Proxy：
+curl http://80.5.9.113:8009/v1/models
+2. 执行你的测试
+推荐：流式 Chat 接口
+cd /path/to/aisbench_auto_tools_prefix
+
+python3 aisbench_test.py \
+  --input_len 2048 \
+  --output_len 2048 \
+  --request_rate 0 \
+  --concurrency 60 \
+  --data_num 120 \
+  --dataset_type normal \
+  --test_type stream \
+  2>&1 | tee gsm8k_2048in_2048out_c60.log
+这个命令对应：
+输入长度：2048
+输出长度：2048
+请求频率：0
+并发：60
+请求数：120
+数据集：GSM8K
+Warmup：关闭
+Prefix Cache：关闭
+接口：Chat Streaming
+
 先使用短请求确认功能正常，再进行压测。不要直接压测单个 Prefill 或 Decode 端口，应当压测 Proxy：
 http://80.5.9.113:8009
 如果容器中支持 vllm bench serve：
