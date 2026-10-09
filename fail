@@ -68,4 +68,9 @@ docker run --runtime=runc -u root -it -d \
     ${IMAGES_ID} \
     bash
 
+docker ps -a --filter "name=ycl-minimax-m3-d-20261009"
+CONTAINER ID   IMAGE                                                                         COMMAND                  CREATED          STATUS                          PORTS     NAMES
+df043b4c087d   vllm-ascend:dev-26.2.0.day20261009-800I-A3-py311-openEuler24.03-lts-aarch64   "/bin/bash -c '    u…"   10 minutes ago   Exited (1) About a minute ago             ycl-minimax-m3-d-20261009
+[root@node-97-46 z00949185]# docker logs --tail 200 ycl-minimax-m3-d-20261009
+/bin/bash: /lib64/lib
 
