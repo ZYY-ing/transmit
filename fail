@@ -21,3 +21,51 @@ df043b4c087d3158ba5934bae45f1075b105a5d00f2549ee5039bbc2464374cb
 [root@node-97-46 z00949185]# docker exec -it ycl-minimax-m3-d-20261009 bash
 Error response from daemon: Container df043b4c087d3158ba5934bae45f1075b105a5d00f2549ee5039bbc2464374cb is not running
 [root@node-97-46 z00949185]# 
+
+
+my_start_docker.sh内容
+IMAGES_ID=$1
+NAME=$2
+
+if [ $# -ne 2 ]; then
+    echo "error: need one argument describing your container name."
+    exit 1
+fi
+
+docker run --runtime=runc -u root -it -d \
+    --name ${NAME} \
+    --net=host \
+    --privileged=true \
+    --shm-size=800g \
+    --device=/dev/davinci_manager \
+    --device=/dev/hisi_hdc \
+    --device=/dev/ummu \
+    --device=/dev/uburma \
+    --device=/dev/davinci0 \
+    --device=/dev/davinci1 \
+    --device=/dev/davinci2 \
+    --device=/dev/davinci3 \
+    --device=/dev/davinci4 \
+    --device=/dev/davinci5 \
+    --device=/dev/davinci6 \
+    --device=/dev/davinci7 \
+    -v /usr/local/Ascend/driver:/usr/local/Ascend/driver \
+    -v /usr/local/Ascend/firmware:/usr/local/Ascend/firmware \
+    -v /root/host:/root/host \
+    -v /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi \
+    -v /usr/local/sbin:/usr/local/sbin \
+    -v /usr/local/dcmi:/usr/local/dcmi \
+    -v /var/log/npu/:/usr/slog \
+    -v /mnt:/mnt \
+    -v /data:/data \
+    -v /lib64:/lib64 \
+    -v /etc/hccl_rootinfo.json:/etc/hccl_rootinfo.json \
+    -v /etc/hccn.conf:/etc/hccn.conf \
+    -v /usr/lib64:/usr/lib64 \
+    -v /usr/local/bin/npu-smi:/usr/local/bin/npu-smi \
+    -v /home/:/home/ \
+    -v /etc/hixlep:/etc/hixlep \
+    ${IMAGES_ID} \
+    bash
+
+
