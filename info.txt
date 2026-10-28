@@ -1,341 +1,189 @@
-你现在的机器可以按下面的拓扑部署：
-Prefill: 80.5.9.113
-容器: ycl-minimax-m3-p-20261009
-NPU: 16 × Ascend 910
+# 14 节点 Ascend-Bench 部署问题复盘（下载 / 安装 / 连通）
 
-Decode: 80.5.9.127
-容器: ycl-minimax-m3-d-20261009
-NPU: 16 × Ascend 910
-PD 分离时，不能分别用两个普通的 vllm serve 直接对外提供服务，而是：
-Prefill vLLM 集群
-        ↓ Mooncake KV Cache
-Decode vLLM 集群
-        ↓
-Load Balance Proxy
-        ↓
-客户端访问 Proxy
-下面假设你的模型路径在两个容器中都存在：
-MODEL=/mnt/share/weight/Minimax-M3-W8V8-0626
-EAGLE=/mnt/share/weight/MiniMax-M3-EAGLE3-GQA
-注意：文档使用的是 W8A8，你提供的目录名是 W8V8，请确认目录实际对应的是 W8A8 权重。
-1. 先检查两个 Docker 容器
-在服务器上执行：
-docker inspect ycl-minimax-m3-p-20261009 \
-  --format 'Network={{.HostConfig.NetworkMode}} Shm={{.HostConfig.ShmSize}}'
-docker inspect ycl-minimax-m3-d-20261009 \
-  --format 'Network={{.HostConfig.NetworkMode}} Shm={{.HostConfig.ShmSize}}'
-PD 多机通信建议容器使用：
-Network=host
-分别进入容器：
-docker exec -it ycl-minimax-m3-p-20261009 bash
-docker exec -it ycl-minimax-m3-d-20261009 bash
-确认环境：
-npu-smi info
-pip show vllm-ascend
-ls -ld /mnt/share/weight/Minimax-M3-W8V8-0626
-ls -ld /mnt/share/weight/MiniMax-M3-EAGLE3-GQA
-检查网卡：
-ip -br addr
-假设两台机器用于 HCCL/Gloo 通信的网卡叫 eth0。如果实际是 bond0、enp... 等，后面的 NIC 必须替换。
-2. 检查两台机器网络
-在 Prefill 容器中：
-ping -c 3 80.5.9.127
-在 Decode 容器中：
-ping -c 3 80.5.9.113
-检查端口：
-nc -vz 80.5.9.113 6884
-nc -vz 80.5.9.127 5964
-如果 nc 不存在：
-timeout 3 bash -c '</dev/tcp/80.5.9.113/6884' && echo OK
-timeout 3 bash -c '</dev/tcp/80.5.9.127/5964' && echo OK
-还需要保证以下端口可互通：
-6884       Prefill DP RPC
-5964       Decode DP RPC
-31050-31051 Prefill API
-31060-31063 Decode API
-36000       Prefill Mooncake KV
-36100       Decode Mooncake KV
-8009        Proxy
-3. 准备启动脚本
-在两台容器中都执行：
-mkdir -p /workspace/minimax-pd
-cd /workspace/minimax-pd
-需要准备两个文件：
-launch_online_dp.py
-run_dp_template.sh
-launch_online_dp.py 使用文档 5.3 中的完整内容。它负责启动多个 DP rank。
-run_dp_template.sh 不能简单复制同一份到两台机器，因为 Prefill 和 Decode 的启动参数不同：
-- Prefill 使用 kv_role=kv_producer
-- Decode 使用 kv_role=kv_consumer
-同时需要保留：
---data-parallel-size
---data-parallel-rank
---data-parallel-address
---data-parallel-rpc-port
---tensor-parallel-size
---pipeline-parallel-size
---kv-transfer-config
-如果容器中没有 Mooncake 相关库，先检查：
-find / -iname '*mooncake*' 2>/dev/null | head
-如果找不到，需要使用已经包含 Mooncake 的 vLLM-Ascend 镜像或安装对应依赖，否则 PD 服务无法建立 KV Cache 传输。
-4. 启动 Prefill
-进入 Prefill 容器：
-docker exec -it ycl-minimax-m3-p-20261009 bash
-执行：
-cd /workspace/minimax-pd
+## 0. 环境事实
 
-export MODEL=/mnt/share/weight/Minimax-M3-W8V8-0626
-export EAGLE=/mnt/share/weight/MiniMax-M3-EAGLE3-GQA
-export P_IP=80.5.9.113
-export NIC=enp194s0f0
+| 项 | 值 |
+|---|---|
 
-unset http_proxy https_proxy ftp_proxy
-export VLLM_USE_V2_MODEL_RUNNER=1
-export HCCL_BUFFSIZE=1024
-export HCCL_IF_IP=$P_IP
-export HCCL_SOCKET_IFNAME=$NIC
-export GLOO_SOCKET_IFNAME=$NIC
-export PYTORCH_NPU_ALLOC_CONF=expandable_segments:True
-export VLLM_PP_LAYER_PARTITION=30,30
+| Bench Web | Runner `127.0.0.1:18787`，登录口令 `runner-token` |
+| 推理入口 | `127.0.0.1:8000`（P/D 负载均衡代理，非原生 vLLM） |
+| 后端 | prefill `172.27.25.14:18010`，decode `172.27.26.22:18020` |
+| 企业代理 | `http://141.2.239.180:3128`（NetentSec，做 HTTPS 中间人） |
+| DNS | 宿主 `141.61.33.201`；容器只有 `8.8.8.8` / `114.114.114.114` |
 
-python launch_online_dp.py \
-  --dp-size 2 \
-  --tp-size 4 \
-  --pp-size 2 \
-  --dp-size-local 2 \
-  --dp-rank-start 0 \
-  --dp-address $P_IP \
-  --dp-rpc-port 6884 \
-  --vllm-start-port 31050
-这个命令会启动两个 Prefill 服务：
-80.5.9.113:31050
-80.5.9.113:31051
-这里每个 Prefill DP rank 使用：
-TP=4 × PP=2 = 8 张 NPU
-两个 rank 合计 16 张 NPU。
-查看启动日志：
-ps -ef | grep vllm
-ss -lntp | grep -E '31050|31051|6884'
-必须等两个进程都出现：
-Application startup complete
-5. 启动 Decode
-进入 Decode 容器：
-docker exec -it ycl-minimax-m3-d-20261009 bash
-执行：
-cd /workspace/minimax-pd
+---
 
-export MODEL=/mnt/share/weight/Minimax-M3-W8V8-0626
-export EAGLE=/mnt/share/weight/MiniMax-M3-EAGLE3-GQA
-export D_IP=80.5.9.127
-export NIC=enp194s0f0
+## 1. 下载阶段
 
-unset http_proxy https_proxy ftp_proxy
-export VLLM_USE_V2_MODEL_RUNNER=1
-export HCCL_BUFFSIZE=2048
-export HCCL_IF_IP=$D_IP
-export HCCL_SOCKET_IFNAME=$NIC
-export GLOO_SOCKET_IFNAME=$NIC
-export PYTORCH_NPU_ALLOC_CONF=expandable_segments:True
+### 1.1 pip 依赖下载：SSL 证书校验失败
 
-python launch_online_dp.py \
-  --dp-size 4 \
-  --tp-size 4 \
-  --pp-size 1 \
-  --dp-size-local 4 \
-  --dp-rank-start 0 \
-  --dp-address $D_IP \
-  --dp-rpc-port 5964 \
-  --vllm-start-port 31060
-这个命令会启动四个 Decode 服务：
-80.5.9.127:31060
-80.5.9.127:31061
-80.5.9.127:31062
-80.5.9.127:31063
-每个 Decode rank 使用 4 张 NPU：
-TP=4 × PP=1 = 4 张 NPU
-四个 rank 合计 16 张 NPU。
-检查：
-ps -ef | grep vllm
-ss -lntp | grep -E '31060|31061|31062|31063|5964'
-同样需要等四个进程都出现：
-Application startup complete
-6. 确认 Mooncake 参数
-Prefill 的 run_dp_template.sh 中必须包含类似配置：
-{
-  "kv_connector": "MooncakeConnectorV1",
-  "kv_role": "kv_producer",
-  "kv_port": "36000",
-  "engine_id": "0",
-  "kv_connector_extra_config": {
-    "use_ascend_direct": true,
-    "prefill": {
-      "dp_size": 2,
-      "tp_size": 4,
-      "pp_size": 2,
-      "pp_layer_partition": "30,30"
-    },
-    "decode": {
-      "dp_size": 4,
-      "tp_size": 4,
-      "pp_size": 1
-    }
-  }
-}
-Decode 中必须改为：
-{
-  "kv_connector": "MooncakeConnectorV1",
-  "kv_role": "kv_consumer",
-  "kv_port": "36100",
-  "engine_id": "1",
-  "kv_connector_extra_config": {
-    "use_ascend_direct": true,
-    "prefill": {
-      "dp_size": 2,
-      "tp_size": 4,
-      "pp_size": 2,
-      "pp_layer_partition": "30,30"
-    },
-    "decode": {
-      "dp_size": 4,
-      "tp_size": 4,
-      "pp_size": 1
-    }
-  }
-}
-如果日志出现以下关键词，说明 KV 传输没有正常建立：
-Mooncake connection failed
-KV transfer timeout
-connection refused
-engine_id mismatch
-优先检查 HCCL_IF_IP、网卡名、端口、防火墙和容器网络模式。
-7. 启动 Proxy
-代理脚本需要在某个能同时访问两台机器的环境中运行。可以直接放在 Prefill 容器中：
-cd /workspace/minimax-pd
-python load_balance_proxy_server_example.py \
-  --port 8009 \
-  --host 80.5.9.113 \
-  --prefiller-hosts \
-    80.5.9.113 80.5.9.113 \
-  --prefiller-ports \
-    31050 31051 \
-  --decoder-hosts \
-    80.5.9.127 80.5.9.127 80.5.9.127 80.5.9.127 \
-  --decoder-ports \
-    31060 31061 31062 31063
-如果脚本不在容器内，需要从 vLLM-Ascend 仓库的 examples 目录获取：
-find / -name 'load_balance_proxy_server_example.py' 2>/dev/null
-最终客户端访问：
-http://80.5.9.113:8009
-检查模型接口：
-curl http://80.5.9.113:8009/v1/models
-发送测试请求：
-curl http://80.5.9.113:8009/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "minimax-m3",
-    "messages": [
-      {"role": "user", "content": "介绍一下你自己"}
-    ],
-    "max_tokens": 128,
-    "temperature": 0
-  }'
-8. 获取性能指标
-先修改 config.py
-进入仓库目录：
-cd /path/to/aisbench_auto_tools_prefix
-vim config.py
-确认配置类似：
-DATASET_PATH = "/path/to/aisbench_dataset"
+**现象**
+```
+SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED]
+self-signed certificate in certificate chain'))
+Could not fetch URL https://mirrors.aliyun.com/pypi/simple/nltk/ - skipping
+```
 
-WORK_PATH = "/usr/local/python3.11.10/lib/python3.11/site-packages"
+**根因**：出口代理对 HTTPS 做中间人解密，注入自签名 CA；同时该机器直连外网超时，只能走代理。
 
-MODEL_NAME = "minimax-m3"
+**修复思路**（三选一，按优先级）
+1. 改用内网 HTTP 源 `http://mirrors.tools.huawei.com/pypi/simple`（不经代理、无 TLS）；
+2. 必须走公网源时加 `--trusted-host <host>` 跳过该域名证书校验；
+3. curl 下载场景用 `-k`，并显式 `-x http://141.2.239.180:3128`（先 `unset` 环境变量避免打架）。
 
-MODEL_PATH = "/mnt/share/weight/Minimax-M3-W8V8-0626"
+### 1.2 容器内无法解析内网源域名
 
-HOST_IP = "80.5.9.113"
+**现象**
+```
+[Errno -3] Temporary failure in name resolution  (mirrors.tools.huawei.com)
+```
 
-HOST_PORT = "8009"
+**根因**：容器 `/etc/resolv.conf` 被写成公共 DNS `8.8.8.8` / `114.114.114.114`，内网域名只能由公司 DNS `141.61.33.201` 解析；宿主机能解析，容器不能。
 
-API_KEY = ""
-URL = ""
-DEFAULT_PERFORMANCE_TEST = "default_perf"
-其中：
-HOST_IP/HOST_PORT = PD Proxy 地址
-MODEL_NAME         = vLLM 的 served-model-name
-MODEL_PATH         = 模型路径，用于 tokenizer
-先测试 Proxy：
-curl http://80.5.9.113:8009/v1/models
-2. 执行你的测试
-推荐：流式 Chat 接口
-cd /path/to/aisbench_auto_tools_prefix
+**修复**：把宿主机解析出的 IP 写入容器 hosts（临时、有效）
+```bash
+IP=$(getent hosts mirrors.tools.huawei.com | awk '{print $1}')   # 141.61.33.201
+docker exec -u root <容器> sh -c "grep -q mirrors.tools.huawei.com /etc/hosts || echo '$IP mirrors.tools.huawei.com' >> /etc/hosts"
+```
 
-python3 aisbench_test.py \
-  --input_len 2048 \
-  --output_len 2048 \
-  --request_rate 0 \
-  --concurrency 60 \
-  --data_num 120 \
-  --dataset_type normal \
-  --test_type stream \
-  2>&1 | tee gsm8k_2048in_2048out_c60.log
-这个命令对应：
-输入长度：2048
-输出长度：2048
-请求频率：0
-并发：60
-请求数：120
-数据集：GSM8K
-Warmup：关闭
-Prefix Cache：关闭
-接口：Chat Streaming
+**长期方案**：`docker run --add-host mirrors.tools.huawei.com:141.61.33.201`，或给容器配 DNS `141.61.33.201`。
 
-先使用短请求确认功能正常，再进行压测。不要直接压测单个 Prefill 或 Decode 端口，应当压测 Proxy：
-http://80.5.9.113:8009
-如果容器中支持 vllm bench serve：
-vllm bench serve \
-  --backend openai-chat \
-  --base-url http://80.5.9.113:8009 \
-  --endpoint /v1/chat/completions \
-  --model minimax-m3 \
-  --dataset-name random \
-  --num-prompts 100 \
-  --random-input-len 1024 \
-  --random-output-len 256 \
-  --request-rate inf \
-  --max-concurrency 16
-如果该版本参数不同，先查看：
-vllm bench serve --help
-至少记录这些指标：
-请求数
-成功率
-总吞吐量
-Input token throughput
-Output token throughput
-平均首 token 延迟 TTFT
-平均生成 token 延迟 TPOT
-端到端延迟
-P50 / P90 / P99 延迟
-同时在两台服务器分别监控：
-watch -n 1 npu-smi info
-CPU、内存和网络：
-top
-free -h
-sar -n DEV 1
-实时查看服务日志：
-ps -ef | grep vllm
-如果启动时没有重定向日志，可以重新启动时使用：
-python launch_online_dp.py ... 2>&1 | tee prefill.log
-压测报告建议至少记录以下组合：
-输入长度: 512 / 1024 / 4096
-输出长度: 128 / 256 / 512
-并发数: 1 / 4 / 8 / 16 / 32
-每组测试重复 2～3 次，舍弃第一次模型预热结果。最终你应当比较：
-Prefill 节点：TTFT 和输入吞吐
-Decode 节点：输出吞吐和 TPOT
-Proxy：端到端延迟、成功率和整体吞吐
-你当前最需要先确认的不是 vllm serve 命令，而是以下三项：
-docker inspect <容器> --format '{{.HostConfig.NetworkMode}}'
-ip -br addr
-find / -iname '*mooncake*' 2>/dev/null | head
-如果你把这三项输出，以及两个容器中 pip show vllm-ascend 的结果发出来，我可以继续把 run_dp_template.sh 和两个节点的启动命令改成与你当前镜像完全匹配的版本。
+---
+
+## 2. 安装阶段
+
+### 2.1 setup.sh 硬编码公网源
+
+**根因**：脚本通过 `PIP_CONFIG_FILE` 指向 `$TARGET/pip.conf`，其中写死 `https://mirrors.aliyun.com`，覆盖了宿主已配的内网源。
+
+**修复**：改写 `$TARGET/pip.conf`
+```ini
+[global]
+index-url = http://mirrors.tools.huawei.com/pypi/simple
+trusted-host = mirrors.tools.huawei.com
+progress-bar = on
+timeout = 60
+retries = 5
+```
+
+### 2.2 `nltk==3.8` 装不上（最隐蔽的一个）
+
+**现象**
+```
+ERROR: Could not find a version that satisfies the requirement nltk==3.8 (from versions: none)
+subprocess.CalledProcessError: '.../bench-venv/bin/python -m pip wheel --no-deps nltk==3.8'
+```
+
+**根因**：`benchmark/setup.py` 的 `setup_requires=['nltk==3.8']` 由 setuptools 另起一个 pip 子进程安装。**该子进程不继承外层命令行的 `-i` / `--trusted-host`，只读 pip.conf**，因此仍走阿里云 → SSL 失败 → 视为“无可用版本”。
+
+**修复**：双管齐下
+1. 先把 `nltk==3.8` 装进 venv，让 `setup_requires` 直接命中已满足；
+2. 同时把 `pip.conf` 改成内网源，保证后续依赖也走内网。
+
+### 2.3 venv 依赖冲突告警（无害）
+
+**现象**：`pip` 报 `vllm 0.30.0+empty requires fastapi[standard]<0.137.0 ... but you have fastapi 0.123.10`
+
+**根因**：venv 用 `--system-site-packages` 创建，能看到系统 site-packages 里的 vllm；pip 的冲突检查把系统包也算进去了。
+
+**结论**：pip 明确打印 `Not uninstalling ... outside environment`，改动只落在 venv 内，**系统 Python 与正在运行的推理服务未受影响**，可忽略。
+
+---
+
+## 3. 启动与连通阶段
+
+### 3.1 start-runner.sh 无法启动（路径与解释器都错）
+
+**根因**
+```bash
+BASE="${ASCEND_BENCH_HOME:-/home/z00949185/ascend-test}"   # 目录不存在
+exec python3 scripts/runner.py                            # 系统 python，非 venv
+```
+`set -euo pipefail` 下 `cd` 失败即退出，既无日志也无进程。
+
+**修复**：重写脚本，`BASE` 默认指向 `$TARGET`，解释器改为 `$BASE/bench-venv/bin/python`。
+
+### 3.2 重复启动导致 Address already in use
+
+**现象**：日志里 `OSError: [Errno 98] Address already in use`，但服务其实在跑。
+
+**根因**：`start-runner.sh` 连执行两次，第二个实例绑定 18787 失败退出。
+
+**结论**：不影响已运行实例；启动前先 `pgrep -af '[r]unner.py'`。
+
+### 3.3 网页连接报 504 / HIS Proxy Notification
+
+**现象**
+```
+models=504  health=504
+<title>HIS Proxy Notification</title>  (NetentSec)
+```
+
+**根因**：容器/宿主残留 `http_proxy`，而 `no_proxy` 不含 `141.61.141.14`，本机 API 请求被送去代理，代理再回连自身超时 → 504。
+
+**修复**：重启 Runner 时清空代理并设置 `no_proxy`
+```bash
+docker exec -d -w $T -e http_proxy= -e https_proxy= -e HTTP_PROXY= -e HTTPS_PROXY= \
+  -e no_proxy=127.0.0.1,localhost,141.61.141.14 <容器> bash $T/scripts/start-runner.sh
+```
+同时网页里服务地址改填 `127.0.0.1:8000`。
+
+### 3.4 网页连接报 404（最终拦路问题）
+
+**根因**：`runner.py:probe_service()` 第一步 GET `/health`；而 8000 是 `examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py`，**只实现 `/v1/*`，没有 `/health`**。
+
+实测（`--noproxy '*'`）：
+
+| 路径 | 状态 |
+|---|---|
+| `/v1/models` | 200 |
+| `/health` | 404 |
+| `/metrics` | 404 |
+| `/v1/completions`、`/v1/chat/completions`（GET） | 405（路由存在，仅 POST） |
+
+**修复**：`probe_service` 只容忍 **404**，其余异常照常抛
+```python
+try:
+    with opener.open(root + '/health', timeout=5) as response:
+        if response.status != 200:
+            raise ValueError('服务健康检查未通过')
+except urllib.error.HTTPError as exc:
+    if exc.code != 404:
+        raise ValueError(f'服务健康检查失败：HTTP {exc.code}')
+```
+> 不要写成 `except URLError: pass`，那会把连接拒绝、超时、500 一并吞掉，退化成静默放过。
+
+**补充认知**：`/health` 缺失**不是 PD 分离的固有属性**，而是该 example 代理的功能裁剪。原生 `vllm serve`、Envoy/llm-d 网关、Dynamo frontend 都有健康端点。根治办法是给入口补 `/health` 或前置网关，但那要动推理服务侧代码。
+
+---
+
+## 4. 遗留风险
+
+| 风险 | 影响 | 建议 |
+|---|---|---|
+| `/etc/hosts` 手工写入 | 容器重建后失效，pip 再次解析失败 | `--add-host` 或容器 DNS 指向 `141.61.33.201` |
+| 健康判定被弱化 | 后端全挂但代理存活时仍显示“已连接” | 入口补 `/health` 聚合，或 bench 侧增加 `/v1/models` 之外的后端探测 |
+| setup.sh 若再次运行 | 可能把 `pip.conf` 覆写回公网源 | 运行前先 `grep -n 'aliyun\|index-url' setup.sh` |
+| `start-runner.sh` 为临时重写版 | 与 kit 原始版本不一致 | 记录变更，后续升级 kit 时同步 |
+
+---
+
+## 5. 验收命令清单
+
+```bash
+# 依赖是否就绪
+docker exec <容器> $T/bench-venv/bin/python -m pip show nltk ais_bench_benchmark | grep -E 'Name|Version'
+
+# 推理 API（绕过代理）
+docker exec <容器> bash -c "curl -s --noproxy '*' -o /dev/null -w 'api=%{http_code}\n' http://127.0.0.1:8000/v1/models"
+
+# Bench Runner
+docker exec <容器> bash -c "pgrep -af '[r]unner.py'; curl -s -o /dev/null -w 'runner=%{http_code}\n' http://127.0.0.1:18787/"
+
+# 后端健康（验证 404 只发生在入口层）
+for h in 172.27.25.14:18010 172.27.26.22:18020; do
+  printf '%-22s ' $h; curl -s -o /dev/null -w '%{http_code}\n' --noproxy '*' --max-time 3 http://$h/health
+done
+```
+
+期望：`nltk 3.8`、`ais_bench_benchmark 3.1.0`、`api=200`、`runner=200`。
